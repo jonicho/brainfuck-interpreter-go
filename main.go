@@ -127,8 +127,25 @@ func removeNops(instruction *instruction) *instruction {
 	}
 }
 
+func optimizeAdjacentInstructions(instruction *instruction) {
+	if instruction == nil {
+		return
+	}
+	switch instruction.instructionType {
+	case move, add:
+		for instruction.next != nil && instruction.next.instructionType == instruction.instructionType && instruction.next.offset == instruction.offset {
+			instruction.value += instruction.next.value
+			instruction.next = instruction.next.next
+		}
+	case loop:
+		optimizeAdjacentInstructions(instruction.loop)
+	}
+	optimizeAdjacentInstructions(instruction.next)
+}
+
 func optimizeProgram() {
 	program = removeNops(program)
+	optimizeAdjacentInstructions(program)
 }
 
 func main() {
