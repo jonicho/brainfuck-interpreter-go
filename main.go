@@ -7,6 +7,10 @@ import (
 )
 
 var programScanner *bufio.Scanner
+var data []byte
+var dataPtr int
+var stdinReader *bufio.Reader
+var program *instruction
 
 type instructionType int
 
@@ -60,6 +64,53 @@ func parseProgram() *instruction {
 	return firstInstruction
 }
 
+func increaseDataArraySize(minRequiredIndex int) {
+	newSize := len(data)
+	for newSize < minRequiredIndex+1 {
+		newSize *= 2
+	}
+	data = append(data, make([]byte, newSize-len(data))...)
+}
+
+func runInstruction(instruction *instruction) {
+	for instruction != nil {
+		switch instruction.instructionType {
+		case nop:
+		case move:
+			dataPtr += instruction.value
+		case add:
+			if dataPtr+instruction.offset >= len(data) {
+				increaseDataArraySize(dataPtr + instruction.offset)
+			}
+			data[dataPtr+instruction.offset] += byte(instruction.value)
+		case print:
+			if dataPtr+instruction.offset >= len(data) {
+				increaseDataArraySize(dataPtr + instruction.offset)
+			}
+			fmt.Printf("%c", data[dataPtr+instruction.offset])
+		case read:
+			if dataPtr+instruction.offset >= len(data) {
+				increaseDataArraySize(dataPtr + instruction.offset)
+			}
+			data[dataPtr+instruction.offset], _ = stdinReader.ReadByte()
+		case loop:
+			for data[dataPtr] != 0 {
+				runInstruction(instruction.loop)
+			}
+		case clear:
+			if dataPtr+instruction.offset >= len(data) {
+				increaseDataArraySize(dataPtr + instruction.offset)
+			}
+			data[dataPtr+instruction.offset] = 0
+		}
+
+		if dataPtr >= len(data) {
+			increaseDataArraySize(dataPtr)
+		}
+		instruction = instruction.next
+	}
+}
+
 func main() {
 	args := os.Args
 	if len(args) < 2 {
@@ -74,5 +125,9 @@ func main() {
 	}
 	programScanner = bufio.NewScanner(programFile)
 	programScanner.Split(bufio.ScanRunes)
-	parseProgram()
+	program = parseProgram()
+
+	data = make([]byte, 1)
+	stdinReader = bufio.NewReader(os.Stdin)
+	runInstruction(program)
 }
