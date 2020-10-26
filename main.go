@@ -111,6 +111,26 @@ func runInstruction(instruction *instruction) {
 	}
 }
 
+func removeNops(instruction *instruction) *instruction {
+	if instruction == nil {
+		return nil
+	}
+	switch instruction.instructionType {
+	case nop:
+		return removeNops(instruction.next)
+	case loop:
+		instruction.loop = removeNops(instruction.loop)
+		fallthrough
+	default:
+		instruction.next = removeNops(instruction.next)
+		return instruction
+	}
+}
+
+func optimizeProgram() {
+	program = removeNops(program)
+}
+
 func main() {
 	args := os.Args
 	if len(args) < 2 {
@@ -126,6 +146,8 @@ func main() {
 	programScanner = bufio.NewScanner(programFile)
 	programScanner.Split(bufio.ScanRunes)
 	program = parseProgram()
+
+	optimizeProgram()
 
 	data = make([]byte, 1)
 	stdinReader = bufio.NewReader(os.Stdin)
