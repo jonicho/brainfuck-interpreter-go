@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+var programScanner *bufio.Scanner
+
 type instructionType int
 
 const (
@@ -26,7 +28,7 @@ type instruction struct {
 	loop            *instruction
 }
 
-func parseProgram(programScanner *bufio.Scanner) *instruction {
+func parseProgram() *instruction {
 	firstInstruction := &instruction{instructionType: nop}
 	currentInstruction := firstInstruction
 	for currentInstruction != nil && programScanner.Scan() {
@@ -48,7 +50,7 @@ func parseProgram(programScanner *bufio.Scanner) *instruction {
 			nextInstruction.instructionType = read
 		case "[":
 			nextInstruction.instructionType = loop
-			nextInstruction.loop = parseProgram(programScanner)
+			nextInstruction.loop = parseProgram()
 		case "]":
 			nextInstruction = nil
 		}
@@ -70,7 +72,7 @@ func main() {
 		fmt.Printf("Failed to open file!\n")
 		os.Exit(1)
 	}
-	programScanner := bufio.NewScanner(programFile)
+	programScanner = bufio.NewScanner(programFile)
 	programScanner.Split(bufio.ScanRunes)
-	parseProgram(programScanner)
+	parseProgram()
 }
