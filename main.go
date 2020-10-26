@@ -143,9 +143,25 @@ func optimizeAdjacentInstructions(instruction *instruction) {
 	optimizeAdjacentInstructions(instruction.next)
 }
 
+func optimizeClearLoops(instruction *instruction) {
+	if instruction == nil {
+		return
+	}
+	optimizeClearLoops(instruction.next)
+	if instruction.instructionType == loop {
+		if instruction.loop != nil && instruction.loop.instructionType == add && instruction.loop.next == nil {
+			instruction.instructionType = clear
+			instruction.loop = nil
+		} else {
+			optimizeClearLoops(instruction.loop)
+		}
+	}
+}
+
 func optimizeProgram() {
 	program = removeNops(program)
 	optimizeAdjacentInstructions(program)
+	optimizeClearLoops(program)
 }
 
 func main() {
