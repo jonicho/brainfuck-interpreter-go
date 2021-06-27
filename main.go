@@ -3,12 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 )
 
 var programScanner *bufio.Scanner
 var data []byte
-var dataPtr int
+var dataPtr uint16
 var stdinReader *bufio.Reader
 var program *instruction
 
@@ -26,8 +27,8 @@ const (
 
 type instruction struct {
 	instructionType instructionType
-	value           int
-	offset          int
+	value           uint16
+	offset          uint16
 	next            *instruction
 	loop            *instruction
 }
@@ -39,12 +40,12 @@ func parseProgram() *instruction {
 		nextInstruction := &instruction{offset: 0, value: 1}
 		switch programScanner.Text() {
 		case "<":
-			nextInstruction.value = -1
+			nextInstruction.value = math.MaxUint16 // -1
 			fallthrough
 		case ">":
 			nextInstruction.instructionType = move
 		case "-":
-			nextInstruction.value = -1
+			nextInstruction.value = math.MaxUint16 // -1
 			fallthrough
 		case "+":
 			nextInstruction.instructionType = add
@@ -64,14 +65,6 @@ func parseProgram() *instruction {
 	return firstInstruction
 }
 
-func increaseDataArraySize(minRequiredIndex int) {
-	newSize := len(data)
-	for newSize < minRequiredIndex+1 {
-		newSize *= 2
-	}
-	data = append(data, make([]byte, newSize-len(data))...)
-}
-
 func runInstruction(instruction *instruction) {
 	for instruction != nil {
 		switch instruction.instructionType {
@@ -79,33 +72,17 @@ func runInstruction(instruction *instruction) {
 		case move:
 			dataPtr += instruction.value
 		case add:
-			if dataPtr+instruction.offset >= len(data) {
-				increaseDataArraySize(dataPtr + instruction.offset)
-			}
 			data[dataPtr+instruction.offset] += byte(instruction.value)
 		case print:
-			if dataPtr+instruction.offset >= len(data) {
-				increaseDataArraySize(dataPtr + instruction.offset)
-			}
 			fmt.Printf("%c", data[dataPtr+instruction.offset])
 		case read:
-			if dataPtr+instruction.offset >= len(data) {
-				increaseDataArraySize(dataPtr + instruction.offset)
-			}
 			data[dataPtr+instruction.offset], _ = stdinReader.ReadByte()
 		case loop:
 			for data[dataPtr] != 0 {
 				runInstruction(instruction.loop)
 			}
 		case clear:
-			if dataPtr+instruction.offset >= len(data) {
-				increaseDataArraySize(dataPtr + instruction.offset)
-			}
 			data[dataPtr+instruction.offset] = 0
-		}
-
-		if dataPtr >= len(data) {
-			increaseDataArraySize(dataPtr)
 		}
 		instruction = instruction.next
 	}
@@ -163,7 +140,7 @@ func optimizeOffsets(inst *instruction) {
 		return
 	}
 	currentInstruction := inst
-	offset := 0
+	var offset uint16 = 0
 	for currentInstruction != nil && currentInstruction.instructionType != loop {
 		if currentInstruction.instructionType == move {
 			offset += currentInstruction.value
@@ -214,7 +191,7 @@ func main() {
 
 	optimizeProgram()
 
-	data = make([]byte, 1)
+	data = make([]byte, math.MaxUint16+1)
 	stdinReader = bufio.NewReader(os.Stdin)
 	runInstruction(program)
 }
