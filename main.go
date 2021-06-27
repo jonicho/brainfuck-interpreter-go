@@ -102,7 +102,7 @@ func compileProgram(instruction *instruction) string {
 
 section .bss
 data:
-	resb 2^16
+	resb 65536
 
 section .text
 global _start
